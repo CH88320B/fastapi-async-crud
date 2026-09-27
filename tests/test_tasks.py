@@ -73,3 +73,14 @@ async def test_filtering_sorting_and_pagination(client: AsyncClient, auth_header
 async def test_rejects_invalid_pagination(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     res = await client.get("/api/v1/tasks", params={"size": 500}, headers=auth_headers)
     assert res.status_code == 422
+
+
+async def test_update_rejects_explicit_null_for_required_fields(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
+    task = await create(client, auth_headers)
+    res = await client.patch(f"/api/v1/tasks/{task['id']}", json={"title": None}, headers=auth_headers)
+    assert res.status_code == 422
+
+    cleared = await client.patch(f"/api/v1/tasks/{task['id']}", json={"due_date": None}, headers=auth_headers)
+    assert cleared.status_code == 200

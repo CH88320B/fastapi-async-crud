@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import TaskPriority, TaskStatus
 
@@ -36,6 +36,14 @@ class TaskUpdate(BaseModel):
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
     due_date: date | None = None
+
+    @model_validator(mode="after")
+    def reject_null_for_required_columns(self) -> "TaskUpdate":
+        # Omitted fields are fine; an explicit null would violate NOT NULL columns and surface as a 500.
+        for field in ("title", "status", "priority"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
 
 
 class TaskRead(TaskBase):
